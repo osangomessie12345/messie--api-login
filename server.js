@@ -9,19 +9,16 @@ app.use(express.json());
 
 const USERS_FILE = path.join(__dirname, 'users.json');
 
-// Lire les utilisateurs depuis le fichier
 function readUsers() {
   if (!fs.existsSync(USERS_FILE)) return [];
   const data = fs.readFileSync(USERS_FILE);
   return JSON.parse(data);
 }
 
-// Écrire les utilisateurs dans le fichier
 function writeUsers(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 }
 
-// Inscription
 app.post('/register', (req, res) => {
   const { username, password } = req.body;
   const users = readUsers();
@@ -32,11 +29,9 @@ app.post('/register', (req, res) => {
 
   users.push({ username, password });
   writeUsers(users);
-
-  res.json({ success: true, message: 'Inscription réussie' });
+  res.json({ success: true });
 });
 
-// Connexion
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
   const users = readUsers();
@@ -46,8 +41,8 @@ app.post('/login', (req, res) => {
     return res.status(401).json({ error: 'Identifiants incorrects' });
   }
 
-  res.json({ success: true, message: 'Connexion réussie' });
+  res.json({ success: true });
 });
 
-// Exporter l'app pour Vercel (pas de app.listen)
-module.exports = app;
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`API en ligne sur le port ${PORT}`));

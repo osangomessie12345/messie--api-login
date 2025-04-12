@@ -1,12 +1,13 @@
 const express = require('express');
 const fs = require('fs');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const USERS_FILE = 'users.json';
+const USERS_FILE = path.join(__dirname, 'users.json');
 
 function readUsers() {
   if (!fs.existsSync(USERS_FILE)) return [];

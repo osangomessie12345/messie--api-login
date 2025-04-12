@@ -1,59 +1,43 @@
+const express = require('express');
 const fs = require('fs');
-const path = require('path');
-const bcrypt = require('bcryptjs');
+const cors = require('cors');
 
-const filePath = path.resolve(__dirname, 'users.json');
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-function loadUsers() {
-  if (!fs.existsSync(filePath)) return {};
-  return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+const USERS_FILE = 'users.json';
+
+function readUsers() {
+  if (!fs.existsSync(USERS_FILE)) return [];
+  const data = fs.readFileSync(USERS_FILE);
+  return JSON.parse(data);
 }
 
-function saveUsers(users) {
-  fs.writeFileSync(filePath, JSON.stringify(users, null, 2));
+function writeUsers(users) {
+  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 }
 
-module.exports = async (req, res) => {
-  const { url, method } = req;
-  const users = loadUsers();
-
-  if (method === 'POST') {
-    let body = '';
-    req.on('data', chunk => (body += chunk));
-    req.on('end', () => {
-      const params = new URLSearchParams(body);
-      const username = params.get('username');
-      const password = params.get('password');
-
-      if (url.endsWith('/register')) {
-        if (users[username]) {
-          res.statusCode = 400;
-          res.end('Utilisateur déjà existant');
-          return;
-        }
-
-        users[username] = { password: bcrypt.hashSync(password, 10) };
-        saveUsers(users);
-        res.end('Inscription réussie');
-      }
-
-      else if (url.endsWith('/login')) {
-        const user = users[username];
-        if (user && bcrypt.compareSync(password, user.password)) {
-          res.end('Connexion réussie');
-        } else {
-          res.statusCode = 401;
-          res.end('Identifiants incorrects');
-        }
-      }
-
-      else {
-        res.statusCode = 404;
-        res.end('Route non trouvée');
-      }
-    });
-  } else {
-    res.statusCode = 405;
-    res.end('Méthode non autorisée');
+app.post('/register', (req, res) => {
+  const { username, password } = req.body;
+  const users = readUsers();
+  if (users.find(u => u.username === username)) {
+    return res.status(400).send('Utilisateur déjà inscrit');
   }
-};
+  users.push({ username, password });
+  writeUsers(users);
+  res.json({ success: true });
+});
+
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  const users = readUsers();
+  const user = users.find(u => u.username === username && u.password === password);
+  if (!user) {
+    return res.status(401).send('Identifiants incorrects');
+  }
+  res.json({ success: true });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`API running on port ${PORT}`));
